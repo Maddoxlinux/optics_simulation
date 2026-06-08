@@ -1,0 +1,18 @@
+# Python
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+
+# Node
+optics-dashboard/node_modules/
+optics-dashboard/dist/
+
+# Environment variables — set these in Vercel / Render dashboards instead
+.env
+optics-dashboard/.env
+
+# OS
+.DS_Store
+Thumbs.db

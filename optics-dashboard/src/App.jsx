@@ -278,7 +278,8 @@ export default function App() {
       no:            nOrd,
     }
 
-    axios.post('http://localhost:8000/simulate', payload)
+    const API_URL = import.meta.env.VITE_API_URL || 'http://127.0.0.1:8000';
+    axios.post(`${API_URL}/simulate`, payload)
       .then(({ data }) => {
         setVectorX(data.reflected_x)
         setVectorY(data.reflected_y)
