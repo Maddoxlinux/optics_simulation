@@ -18,10 +18,10 @@ def main():
     print("Normalized Output Light Vector (After QWP):")
     print(np.round(clean_output, 3), "\n")
 
-    # 4. Check against expected Left-Circular theory
-    expected_lcp = jc.left_circular()
-    print("Theoretical Left-Circular Vector:")
-    print(np.round(expected_lcp, 3))
+    # 4. Check against expected Right-Circular theory (Hecht's convention)
+    expected_rcp = jc.right_circular()
+    print("Theoretical Right-Circular Vector:")
+    print(np.round(expected_rcp, 3))
 
 if __name__ == "__main__":
     main()

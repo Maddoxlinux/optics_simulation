@@ -15,14 +15,35 @@ def vertical_linear():
                      [1]])
 
 def right_circular():
-    """Returns a right-circularly polarized (RCP) light vector."""
+    """Returns a right-circularly polarized (RCP) light vector.
+
+    Handedness follows Hecht: the field rotates clockwise for an observer
+    facing the source. With this module's E ~ exp(i(wt - kz)) convention,
+    (1, i)/sqrt(2) gives Ex = cos(wt), Ey = -sin(wt), which is clockwise.
+    """
+    return (1 / np.sqrt(2)) * np.array([[1],
+                                        [1j]])
+
+def left_circular():
+    """Returns a left-circularly polarized (LCP) light vector (see right_circular)."""
     return (1 / np.sqrt(2)) * np.array([[1],
                                         [-1j]])
 
-def left_circular():
-    """Returns a left-circularly polarized (LCP) light vector."""
-    return (1 / np.sqrt(2)) * np.array([[1],
-                                        [1j]])
+def linear_at(theta_radians):
+    """
+    Returns a unit-intensity linear polarization state at an arbitrary angle.
+
+    theta = 0    -> horizontal_linear()
+    theta = pi/2 -> vertical_linear()
+    theta = pi/4 -> equal weighting of both channels, (1, 1)/sqrt(2)
+
+    Note this is a fully polarized state.  Jones calculus cannot represent
+    unpolarized or partially polarized light at all: a Jones vector always
+    describes a definite, fully coherent polarization state.  Partial
+    polarization requires the Mueller-Stokes formalism.
+    """
+    return np.array([[np.cos(theta_radians)],
+                     [np.sin(theta_radians)]], dtype=complex)
 
 # ==========================================
 # 2. OPTICAL COMPONENTS (JONES MATRICES)
@@ -86,9 +107,18 @@ def fresnel_reflection_matrix(n1, n2, theta_i):
     # n1 * sin(theta_i) = n2 * sin(theta_t)
     sin_theta_t = (n1 / n2) * np.sin(theta_i)
 
-    # Check for Total Internal Reflection (TIR)
+    # Safety trap for Total Internal Reflection.
+    # TIR is only possible going from a denser to a rarer medium (n1 > n2).
+    # Past the critical angle theta_c = arcsin(n2/n1) the transmitted wave is
+    # evanescent, sin(theta_t) > 1, and np.arcsin would return NaN. Trap it
+    # here and report the critical angle rather than propagating a NaN.
     if sin_theta_t > 1.0:
-        raise ValueError("Total Internal Reflection occurred.")
+        theta_c = np.degrees(np.arcsin(n2 / n1))
+        raise ValueError(
+            f"Total internal reflection: angle of incidence "
+            f"{np.degrees(theta_i):.2f} deg exceeds the critical angle "
+            f"{theta_c:.2f} deg for n1={n1} -> n2={n2}."
+        )
 
     theta_t = np.arcsin(sin_theta_t)
 
@@ -153,8 +183,8 @@ def thin_film_reflection_matrix(n0, n_film, n_sub, d_nm, lambda_nm, theta_i_radi
     # STEP 2 — Phase thickness δ of the film
     #   δ = (2π / λ) · n_film · d · cos(θ_film)
     #
-    # δ accumulates the round-trip phase the wave picks up while
-    # traversing the film once.  When δ = π/2 the film is a
+    # δ is the phase the wave picks up while traversing the film
+    # once.  When δ = π/2 the film is a
     # quarter-wave layer at this wavelength and angle.
     # ------------------------------------------------------------------
     delta = (2.0 * np.pi / lambda_nm) * n_film * d_nm * np.cos(theta_f)
@@ -166,7 +196,7 @@ def thin_film_reflection_matrix(n0, n_film, n_sub, d_nm, lambda_nm, theta_i_radi
     # tangential electric field.  It depends on polarisation:
     #
     #   s-pol (TE)  →  η =  n · cos(θ)          (∝ the y-component of H)
-    #   p-pol (TM)  →  η =  n / cos(θ)          (∝ the x-component of H)
+    #   p-pol (TM)  →  η =  cos(θ) / n          (see the note below)
     #
     # We use the relative admittance (normalised by η_vacuum = 1),
     # which is numerically equal to the expressions above.
@@ -198,20 +228,28 @@ def thin_film_reflection_matrix(n0, n_film, n_sub, d_nm, lambda_nm, theta_i_radi
     # STEP 4 — Transfer (characteristic) matrix for the film layer
     #   Macleod formalism, eq. for a single homogeneous layer:
     #
-    #         ┌                              ┐
-    #         │   cos(δ)       −i·sin(δ)/η  │
-    #   M  =  │                              │
-    #         │  −i·η·sin(δ)    cos(δ)      │
-    #         └                              ┘
+    #         ┌                             ┐
+    #         │   cos(δ)      i·sin(δ)/η    │
+    #   M  =  │                             │
+    #         │  i·η·sin(δ)    cos(δ)       │
+    #         └                             ┘
+    #
+    # TIME CONVENTION: the +i signs assume E ~ exp(i(ωt − kz)), which is the
+    # convention used by Macleod and by waveplate() above (where the slow axis
+    # picks up exp(−iΓ)).  Flipping to exp(i(kz − ωt)) would negate both i's
+    # and return the complex conjugate of r: identical reflectance |r|², but
+    # the opposite reflected phase, which inverts the handedness of the
+    # reflected polarization ellipse.  Verified against the analytic Airy
+    # multiple-beam formula in validate.py, Benchmark 4.
     #
     # The matrix is applied to the "entrance vector" of the substrate
-    # [1, η_sub], yielding the equivalent entrance vector [B, C] for
-    # the ambient / film / substrate assembly.
+    # [1, η_sub], yielding the normalised front-surface fields [B, C]
+    # (Macleod's B and C; written E_a and H_a in the thesis, Eq. 2.56):
     #
-    #   [B]   [  cos(δ)       −i·sin(δ)/η  ] [  1   ]
-    #   [C] = [ −i·η·sin(δ)    cos(δ)      ] [ η_sub]
+    #   [B]   [  cos(δ)       i·sin(δ)/η  ] [  1   ]
+    #   [C] = [  i·η·sin(δ)    cos(δ)     ] [ η_sub]
     #
-    # The assembly admittance is then  Y = C / B.
+    # The assembly admittance is then  Y = C / B  (Eq. 2.57).
     # ------------------------------------------------------------------
     cos_d = np.cos(delta)
     sin_d = np.sin(delta)
@@ -219,9 +257,9 @@ def thin_film_reflection_matrix(n0, n_film, n_sub, d_nm, lambda_nm, theta_i_radi
     def _admittance(eta_f, eta_sub):
         """Returns the equivalent admittance Y of the film+substrate stack."""
         # Row 1 of M applied to [1, η_sub]
-        B = cos_d  +  (-1j * sin_d / eta_f) * eta_sub
+        B = cos_d  +  (1j * sin_d / eta_f) * eta_sub
         # Row 2 of M applied to [1, η_sub]
-        C = (-1j * eta_f * sin_d)  +  cos_d * eta_sub
+        C = (1j * eta_f * sin_d)  +  cos_d * eta_sub
         return C / B   # equivalent admittance Y
 
     Y_s = _admittance(eta_f_s, eta_sub_s)
@@ -270,7 +308,9 @@ def birefringent_crystal_matrix(ne, no, d_nm, lambda_nm, theta_radians):
     no           : float -- Ordinary   refractive index (e.g. 1.544 for α-Quartz).
     d_nm         : float -- Physical thickness of the crystal in nanometres.
     lambda_nm    : float -- Free-space wavelength in nanometres.
-    theta_radians: float -- Orientation angle of the fast axis w.r.t. the x-axis.
+    theta_radians: float -- Orientation angle (w.r.t. the x-axis) of the ORDINARY-ray axis.
+                            This is the fast axis for a positive crystal (quartz) and the
+                            slow axis for a negative crystal (calcite).
 
     Returns
     -------
