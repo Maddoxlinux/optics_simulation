@@ -7,10 +7,6 @@ Companion code for the B.Sc. thesis *Computational Modeling and Interactive Visu
 Light Polarization States Through Various Optical Media Using Python* (Annor Yaw Osei,
 Department of Physics, University of Ghana, October 2026; supervisor: Dr. Joanna A. Modupeh Hodasi).
 
-**Live backend:** <https://optics-simulation.onrender.com> (interactive API docs at
-[`/docs`](https://optics-simulation.onrender.com/docs); the first request after a period of
-inactivity can take up to a minute while the service wakes up).
-
 ## What it does
 
 Light is a complex two-component Jones vector and every optical element is a 2 x 2 complex
@@ -58,12 +54,12 @@ npm run dev                      # http://localhost:5173
 ```
 
 To point the front end at a deployed backend, set `VITE_API_URL` before building
-(for example `VITE_API_URL=https://optics-simulation.onrender.com`).
+(for example `VITE_API_URL=https://your-backend.onrender.com`).
 
 Example request:
 
 ```bash
-curl -X POST https://optics-simulation.onrender.com/simulate \
+curl -X POST http://127.0.0.1:8000/simulate \
   -H "Content-Type: application/json" \
   -d '{"mode": "single", "n_material": 1.52, "angle_degrees": 30}'
 ```
