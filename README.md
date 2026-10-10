@@ -7,6 +7,8 @@ Companion code for the B.Sc. thesis *Computational Modeling and Interactive Visu
 Light Polarization States Through Various Optical Media Using Python* (Annor Yaw Osei,
 Department of Physics, University of Ghana, October 2026; supervisor: Dr. Joanna A. Modupeh Hodasi).
 
+**Live dashboard:** <https://optics-simulation-gamma.vercel.app/>
+
 ## What it does
 
 Light is a complex two-component Jones vector and every optical element is a 2 x 2 complex
@@ -22,6 +24,29 @@ The API applies the chosen matrix to a normalized 45-degree linear input and ret
 complex output vector, the relative phase between the components, and the intensities
 `R_s` and `R_p` (= |r|^2). Conventions: fields vary as `exp(i(wt - kz))`; `(1, i)/sqrt(2)` is
 right-circular (Hecht's convention). Jones calculus only describes fully polarized light.
+
+## Materials tested
+
+These are the materials used in the validation benchmarks and in the dashboard presets. Indices
+are nominal, wavelength-independent values (the engine does not model dispersion). Any other
+material can be tried by setting its refractive index in the dashboard. The ambient medium is
+air (n = 1.000) and film cases use crown glass (n = 1.52) as the substrate.
+
+| Material | Refractive index | Configuration | Used in |
+|----------|------------------|---------------|---------|
+| Air | 1.000 | Ambient medium | All benchmarks and presets |
+| Crown glass | 1.52 | Bulk boundary at 30 degrees; substrate under every film | Benchmarks 3-5, uncoated reference, preset |
+| Flint glass | 1.62 | Bulk boundary at the Brewster angle (58.31 degrees) | Benchmark 2, preset |
+| Ideal anti-reflective layer | 1.2329 (sqrt of 1.52) | Quarter-wave film, d = 101.39 nm, 500 nm | Benchmark 3, preset |
+| Magnesium fluoride (MgF2) | 1.38 | Quarter-wave film, normal incidence, 500 / 550 nm | Thesis Figures 4.1 and 4.4, preset |
+| Tin oxide (SnO2), film of index 2.0 | 2.0 | Film at 550 nm; d = 0-412.5 nm in Benchmark 4, 69 nm in preset | Benchmark 4, Figures 4.1, 4.2, 4.4, preset |
+| High-index dielectric film | 2.35 | Film, d = 0-400 nm, 550 nm, 0-85 degrees | Benchmark 5 |
+| Quartz (alpha-SiO2) | n_o 1.544, n_e 1.553 | Quarter-wave plate, d = 17578 nm, 632.8 nm | Crystal preset |
+| Calcite | n_o 1.658, n_e 1.486 | Half-wave plate, d = 1840 nm, 632.8 nm | Crystal preset |
+| Beta barium borate (BBO) | n_o 1.677, n_e 1.555 | 1/8-wave plate (elliptical), d = 545 nm, 532 nm | Crystal preset |
+| Water | 1.333 | Bulk boundary at 30 degrees | Single-boundary preset |
+| Diamond | 2.42 | Bulk boundary at 30 degrees | Single-boundary preset |
+| Silicon | 3.48 | Film, d = 100 nm, 1064 nm, 30 degrees | Thin-film preset |
 
 ## Repository layout
 
