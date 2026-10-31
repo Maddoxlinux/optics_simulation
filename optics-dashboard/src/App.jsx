@@ -168,7 +168,9 @@ function LightSource() {
 
 // Animated wave travelling from SOURCE_Z to z = 0 (the interface).
 // Represents the source / incident beam before it interacts with the material.
-// Constant x-amplitude, gray color — distinct from the cyan resultant wave.
+// It is the same input the backend uses: linear polarization at 45 degrees,
+// i.e. Ex = Ey = cos(wt - kz)/sqrt(2), drawn in gray to stay distinct from the
+// cyan resultant wave.
 function IncomingWave() {
   const timeRef   = useRef(0)
   const lineRef   = useRef()
@@ -183,8 +185,8 @@ function IncomingWave() {
     for (let i = 0; i <= IN_SEGMENTS; i++) {
       const t = timeRef.current - (i / IN_SEGMENTS) * Math.PI * 4
       const z = SOURCE_Z + (i / IN_SEGMENTS) * (-SOURCE_Z)  // maps i → z: −8 … 0
-      positions[i * 3 + 0] = Math.cos(t)   // constant unit amplitude along x
-      positions[i * 3 + 1] = 0
+      positions[i * 3 + 0] = Math.SQRT1_2 * Math.cos(t)   // x and y in phase, equal amplitude:
+      positions[i * 3 + 1] = Math.SQRT1_2 * Math.cos(t)   // linear at 45 deg, unit total amplitude
       positions[i * 3 + 2] = z
     }
     attr.needsUpdate = true
@@ -244,7 +246,9 @@ const MATERIALS = [
   { label: '— Select Preset —', mode: null },
   { label: 'Water',              mode: 'single',    nMaterial: 1.333, nSub: 1.52,  ne: 1.553, nOrd: 1.544, dNm: 500,  angleDeg: 30,    lambdaNm: 632.8 },
   { label: 'Crown Glass',        mode: 'single',    nMaterial: 1.52,  nSub: 1.52,  ne: 1.553, nOrd: 1.544, dNm: 500,  angleDeg: 30,    lambdaNm: 632.8 },
-  { label: 'Flint Glass',        mode: 'single',    nMaterial: 1.62,  nSub: 1.52,  ne: 1.553, nOrd: 1.544, dNm: 500,  angleDeg: 30,    lambdaNm: 632.8 },
+  // Flint glass opens at its Brewster angle, arctan(1.62) = 58.31 deg: the
+  // Parallel Polarization Extinction benchmark (r_p = 0).
+  { label: 'Flint Glass (Brewster angle)', mode: 'single', nMaterial: 1.62, nSub: 1.52, ne: 1.553, nOrd: 1.544, dNm: 500, angleDeg: 58.31, lambdaNm: 632.8 },
   { label: 'Diamond',            mode: 'single',    nMaterial: 2.42,  nSub: 1.52,  ne: 1.553, nOrd: 1.544, dNm: 500,  angleDeg: 30,    lambdaNm: 632.8 },
   { label: 'Silicon NIR Film',   mode: 'thin_film', nMaterial: 3.48,  nSub: 1.52,  ne: 1.553, nOrd: 1.544, dNm: 100,  angleDeg: 30,    lambdaNm: 1064  },
   // Ideal AR layer: n_film = sqrt(n0 * n_sub) = sqrt(1.52) = 1.2329, quarter-wave
@@ -303,9 +307,9 @@ export default function App() {
     setDNm(m.dNm)
     setLambdaNm(m.lambdaNm)
     // Presets also set the angle: thin-film benchmarks are defined at normal
-    // incidence, and in crystal mode the angle is the FAST-AXIS orientation.
-    // The input state is 45-degree linear, so a fast axis at 0 deg sits 45 deg
-    // away from it and gives maximum conversion. A fast axis AT 45 deg would
+    // incidence, and in crystal mode the angle is the orientation of the ordinary-ray axis.
+    // The input state is 45-degree linear, so a crystal axis at 0 deg sits 45 deg
+    // away from it and gives maximum conversion. An axis AT 45 deg would
     // align with the input, which is then an eigenstate of the plate and passes
     // through completely unchanged.
     setAngleDeg(m.angleDeg)
@@ -378,7 +382,7 @@ export default function App() {
     if (mode === 'single') {
       const brewster = (Math.atan(nMaterial / nAir) * 180 / Math.PI).toFixed(1)
       if (Rp < 1e-6) {
-        return `Brewster's angle (≈ ${brewster}°). The p-polarized component is fully transmitted — R_p = ${Rp.toExponential(2)}, zero to within machine precision. The reflected beam is therefore 100% s-polarized, R_s = ${Rs.toFixed(4)}. This is how a pile-of-plates polarizer works.`
+        return `Brewster's angle (≈ ${brewster}°). The p-polarized component is fully transmitted — R_p = ${Rp.toExponential(2)}, zero to within machine precision. The reflected beam is therefore 100% s-polarized, R_s = ${Rs.toFixed(4)}. This is the principle behind Brewster-angle reflection polarizers.`
       }
       const ratio = (Rs / Math.max(Rp, 1e-12)).toFixed(2)
       return `Fresnel reflection at θ = ${angleDeg}°. R_s = ${Rs.toFixed(4)}, R_p = ${Rp.toFixed(4)} — s-polarization reflects ${ratio}× more strongly. Brewster's angle for n = ${nMaterial} is ≈ ${brewster}°; approach it to drive R_p to zero. Reflection off a dielectric is always partially polarizing.`
@@ -409,19 +413,24 @@ export default function App() {
       const tail = `Δn = ${biref}, d = ${dNm} nm, λ = ${lambdaNm} nm. Output is ${polState}.`
 
       // The plate only alters the state if the input has a component on BOTH
-      // eigenaxes. The input here is 45° linear, so a fast axis at 45° (or 135°)
+      // eigenaxes. The input here is 45° linear, so a crystal axis at 45° (or 135°)
       // is parallel to it: the input is then an eigenstate and emerges unchanged
       // no matter how large Γ is. This is a property of the geometry, not a
       // failure of the retarder, so it is checked before the Γ cases below.
+      // The angle is that of the ORDINARY-ray axis (the fast axis for quartz,
+      // the slow axis for calcite); a half-wave plate behaves the same either way.
       const offAxis = Math.abs(((angleDeg - 45) % 180 + 180) % 180)
       if (offAxis < 1.5 || Math.abs(offAxis - 180) < 1.5) {
-        return `Fast axis is parallel to the input polarization (both at 45°), so the 45° linear input is an eigenstate of the plate. It picks up an overall phase but its polarization is unchanged, whatever the retardance (Γ = ${GammaDeg}°). Rotate the fast axis toward 0° or 90° to drive the conversion. ${tail}`
+        return `The crystal axis is parallel to the input polarization (both at 45°), so the 45° linear input is an eigenstate of the plate. It picks up an overall phase but its polarization is unchanged, whatever the retardance (Γ = ${GammaDeg}°). Rotate the axis toward 0° or 90° to drive the conversion. ${tail}`
       }
       if (near(GammaMod, Math.PI / 2) || near(GammaMod, 1.5 * Math.PI)) {
-        return `Quarter-wave retardance (Γ = ${GammaDeg}°). A 90° phase delay between the fast and slow axes converts the 45° linear input into circular polarization. ${tail}`
+        return `Quarter-wave retardance (Γ = ${GammaDeg}°). A 90° phase delay between the two crystal axes converts the 45° linear input into circular polarization. ${tail}`
       }
       if (near(GammaMod, Math.PI)) {
-        return `Half-wave retardance (Γ = ${GammaDeg}°). The plate reflects the polarization about its fast axis, rotating linear input by 2θ = ${(2 * angleDeg).toFixed(0)}° for a fast axis at θ = ${angleDeg}°. ${tail}`
+        // A half-wave plate mirrors the polarization angle about its axis:
+        // alpha_out = 2*theta - alpha_in, with alpha_in = 45 deg here.
+        const outAngle = ((((2 * angleDeg - 45) + 90) % 180) + 180) % 180 - 90
+        return `Half-wave retardance (Γ = ${GammaDeg}°). A half-wave plate mirrors the polarization about its axis, so the 45° linear input leaves as linear light at 2θ − 45° = ${outAngle.toFixed(0)}° for an axis at θ = ${angleDeg}°. ${tail}`
       }
       if (GammaMod < 0.1 || GammaMod > TWO_PI - 0.1) {
         return `Full-wave retardance (Γ = ${GammaDeg}°). A complete 2π cycle returns the state to the input — the plate is invisible at this wavelength. ${tail}`
@@ -474,10 +483,19 @@ export default function App() {
             />
             <SliderField
               label="Angle of Incidence (°)"
-              min={0} max={89} step={1}
+              min={0} max={89} step={isThinFilm ? 1 : 0.01}
               value={angleDeg}
               onChange={setAngleDeg}
             />
+            {!isThinFilm && (
+              <button
+                type="button"
+                style={styles.snapButton}
+                onClick={() => setAngleDeg(Number((Math.atan(nMaterial / nAir) * 180 / Math.PI).toFixed(2)))}
+              >
+                Set to Brewster angle ({(Math.atan(nMaterial / nAir) * 180 / Math.PI).toFixed(2)}°)
+              </button>
+            )}
           </>
         )}
 
@@ -535,7 +553,7 @@ export default function App() {
               trackStyle={wavelengthGradient}
             />
             <SliderField
-              label="Fast-Axis Angle θ (°)"
+              label="Crystal Axis Angle θ (°) (ordinary-ray axis)"
               min={0} max={180} step={1}
               value={angleDeg}
               onChange={setAngleDeg}
@@ -617,6 +635,15 @@ const wavelengthGradient = {
 }
 
 const styles = {
+  snapButton: {
+    background: '#12305a',
+    color: '#c8d8f0',
+    border: '1px solid #1e3a5f',
+    borderRadius: '4px',
+    padding: '6px 8px',
+    fontSize: '12px',
+    cursor: 'pointer',
+  },
   shell: {
     display: 'flex',
     width: '100vw',
