@@ -35,18 +35,18 @@ air (n = 1.000) and film cases use crown glass (n = 1.52) as the substrate.
 | Material | Refractive index | Configuration | Used in |
 |----------|------------------|---------------|---------|
 | Air | 1.000 | Ambient medium | All benchmarks and presets |
-| Crown glass | 1.52 | Bulk boundary at 30 degrees; substrate under every film | Benchmarks 3-5, uncoated reference, preset |
-| Flint glass | 1.62 | Bulk boundary at the Brewster angle (58.31 degrees) | Benchmark 2, preset |
-| Ideal anti-reflective layer | 1.2329 (sqrt of 1.52) | Quarter-wave film, d = 101.39 nm, 500 nm | Benchmark 3, preset |
-| Magnesium fluoride (MgF2) | 1.38 | Quarter-wave film, normal incidence, 500 / 550 nm | Thesis Figures 4.1 and 4.4, preset |
-| Tin oxide (SnO2), film of index 2.0 | 2.0 | Film at 550 nm; d = 0-412.5 nm in Benchmark 4, 69 nm in preset | Benchmark 4, Figures 4.1, 4.2, 4.4, preset |
-| High-index dielectric film | 2.35 | Film, d = 0-400 nm, 550 nm, 0-85 degrees | Benchmark 5 |
-| Quartz (alpha-SiO2) | n_o 1.544, n_e 1.553 | Quarter-wave plate, d = 17578 nm, 632.8 nm | Crystal preset |
-| Calcite | n_o 1.658, n_e 1.486 | Half-wave plate, d = 1840 nm, 632.8 nm | Crystal preset |
-| Beta barium borate (BBO) | n_o 1.677, n_e 1.555 | 1/8-wave plate (elliptical), d = 545 nm, 532 nm | Crystal preset |
-| Water | 1.333 | Bulk boundary at 30 degrees | Single-boundary preset |
-| Diamond | 2.42 | Bulk boundary at 30 degrees | Single-boundary preset |
-| Silicon | 3.48 | Film, d = 100 nm, 1064 nm, 30 degrees | Thin-film preset |
+| Crown glass | 1.52 | Bulk boundary at 30 degrees; substrate under every film | Thin-Film Anti-Reflective Interference, TMM Verification and Energy Conservation tests; uncoated reference; "Crown Glass" preset |
+| Flint glass | 1.62 | Bulk boundary at the Brewster angle (58.31 degrees) | Parallel Polarization Extinction test; "Flint Glass (Brewster angle)" preset, which opens at 58.31 degrees |
+| Ideal anti-reflective layer | 1.2329 (sqrt of 1.52) | Quarter-wave film, d = 101.39 nm, 500 nm (the preset uses the rounded values 1.233 and 101 nm) | Thin-Film Anti-Reflective Interference test; "Ideal AR Layer (√n_sub)" preset |
+| Magnesium fluoride (MgF2) | 1.38 | Quarter-wave film, normal incidence, 500 nm in the comparison with the ideal layer; the preset uses 550 nm and d = 100 nm | "MgF₂ AR Coating" preset |
+| Tin oxide (SnO2), film of index 2.0 | 2.0 | Film at 550 nm; d = 0-412.5 nm in the TMM Verification test, 69 nm in the preset | TMM Verification test; "SnO₂ HR Layer" preset |
+| High-index dielectric film | 2.35 | Film, d = 0-400 nm, 550 nm, 0-85 degrees | Energy Conservation test (entered by hand in the dashboard; there is no preset) |
+| Quartz (alpha-SiO2) | n_o 1.544, n_e 1.553 | Quarter-wave plate, d = 17578 nm, 632.8 nm | "Quartz QWP (α-SiO₂)" preset; Polarization State Conversion test (axis set to 90 degrees) |
+| Calcite | n_o 1.658, n_e 1.486 | Half-wave plate, d = 1840 nm, 632.8 nm | "Calcite HWP" preset |
+| Beta barium borate (BBO) | n_o 1.677, n_e 1.555 | 1/8-wave plate (elliptical), d = 545 nm, 532 nm | "BBO λ/8 (elliptical)" preset |
+| Water | 1.333 | Bulk boundary at 30 degrees | "Water" preset |
+| Diamond | 2.42 | Bulk boundary at 30 degrees | "Diamond" preset |
+| Silicon | 3.48 | Film, d = 100 nm, 1064 nm, 30 degrees | "Silicon NIR Film" preset |
 
 ## Repository layout
 
@@ -100,11 +100,11 @@ double-precision rounding (machine epsilon is 2.22e-16):
 
 | Benchmark | Test | Residual |
 |-----------|------|----------|
-| 1 | Quarter-wave plate at 45 degrees turns horizontal light into circular light | 2.3e-16 |
-| 2 | `r_p` vanishes at Brewster's angle (air to flint glass, n = 1.62) | 6.5e-17 |
-| 3 | Quarter-wave anti-reflection coating gives zero reflection | 3.4e-17 |
-| 4 | Transfer Matrix Method matches the analytic Airy formula in magnitude and phase | 5.6e-17 |
-| 5 | Reflectance stays within 0 and 1 over a thickness and angle sweep (lossless stack) | R_max = 0.915 |
+| 1. Polarization State Conversion | Quarter-wave plate at 45 degrees turns horizontal light into circular light | 2.3e-16 (last digits vary with the NumPy build) |
+| 2. Parallel Polarization Extinction | `r_p` vanishes at Brewster's angle (air to flint glass, n = 1.62) | 6.5e-17 |
+| 3. Thin-Film Anti-Reflective Interference | Quarter-wave anti-reflection coating gives zero reflection | 3.4e-17 |
+| 4. TMM Verification | Transfer Matrix Method matches the analytic Airy formula in magnitude and phase | 5.6e-17 |
+| 5. Energy Conservation | Reflectance stays within 0 and 1 over a thickness and angle sweep (lossless stack) | R_max = 0.915 |
 
 The script exits with a non-zero status if any check fails. To regenerate the thesis figures:
 `pip install -r requirements-dev.txt` then `python make_figures.py`.
